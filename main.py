@@ -1,7 +1,7 @@
-# ==================== ULTIMATE SOLO LEVELING BOT 2025 ====================
+# ==================== ULTIMATE SOLO LEVELING BOT 2025 — FINAL FIXED ====================
 import os, discord, json, random, asyncio, time
 from discord import app_commands, ui
-from datetime import datetime
+from datetime import datetime import datetime
 
 TOKEN = os.environ['TOKEN']
 OWNER_ID = int(os.environ['OWNER_ID'])
@@ -33,7 +33,7 @@ class Player:
                 "hp":300,"max_hp":300,"last_seen":time.time(),
                 "stats":{"str":10,"agi":10,"vit":10,"int":10,"sense":10},
                 "class":"Hunter","shadows":[],"inv":{"Health Potion":5,"Mana Potion":3},
-                "daily":"2000-01-01","weekly":"2000-01-01",
+                "daily":"2000-01-01","weekly":"2000",
                 "quests":{"msg_daily":0,"bosses":0},
                 "training_cd":{"pushup":0,"squat":0,"run":0}
             }
@@ -60,11 +60,12 @@ def level_up(p: Player):
 # =========================== EVENTS ===========================
 @client.event
 async def on_ready():
-    print(f"≪ SYSTEM ONLINE ≫ {client.user}")
+    print(f"SYSTEM ONLINE {client.user}")
+    await tree.clear_commands(guild=None)
     await tree.sync()
     client.loop.create_task(boss_spawner())
     client.loop.create_task(passive_offline_exp())
-    print("Bot is fully ready!")
+    print("Bot fully ready!")
 
 @client.event
 async def on_message(msg):
@@ -83,17 +84,18 @@ async def passive_offline_exp():
         await asyncio.sleep(3600)
         now = time.time()
         for uid, pd in data.items():
-            if now - pd.get("last_seen",0) > 1800:  # offline >30 min
-                hours = min(8, (now - pdlast_seen"]) // 3600)
+            last = pd.get("last_seen", now)
+            if now - last > 1800:  # offline >30 min
+                hours = min(8, (now - last) // 3600)
                 pd["exp"] += hours * 100
-                pdlast_seen"] = now
+                pd["last_seen"] = now
         save(data)
 
 # =========================== BOSS FIGHT ===========================
 class BossView(ui.View):
     def __init__(self, name, hp, reward):
         super().__init__(timeout=240)
-        self.name = name; self.hp = hp; self.max = hp; self.reward = reward; self.alive = True
+        self.name = name; self.hp = hp; self.max_hp = hp; self.reward = reward; self.alive = True
 
     @ui.button(label="Attack", style=discord.ButtonStyle.danger, emoji="Sword")
     async def attack(self, i: discord.Interaction, _):
@@ -110,21 +112,21 @@ class BossView(ui.View):
         view = ui.View()
         skills = {"Fireball":(30,120), "Heal":(25,0), "Shadow Extract":(80,0), "Ruler’s Authority":(150,450)}
         for name,(cost,dmg) in skills.items():
-            async def cb(inter, n=name,c=cost,d=dmg):
-                if p.d["mana"] < c: return await inter.response.send_message("No mana!",ephemeral=True)
+            async def cb(inter, n=name, c=cost, d=dmg):
+                if p.d["mana"] < c: return await inter.response.send_message("No mana!", ephemeral=True)
                 p.d["mana"] -= c
                 if d: self.hp -= d
-                if n=="Shadow Extract" and p.d["class"]=="Necromancer" and random.random()<0.6:
+                if n == "Shadow Extract" and p.d["class"] == "Necromancer" and random.random() < 0.6:
                     p.d["shadows"].append(f"{self.name} Shadow")
-                    await inter.response.send_message("Shadow extracted!",ephemeral=False)
+                    await inter.response.send_message("Shadow extracted!", ephemeral=False)
                 p.save()
                 await self.update(inter.channel)
-            view.add_item(ui.Button(label=f"{name} ({cost} Mana)",callback=cb))
-        await i.response.send_message("Choose skill:",view=view,ephemeral=True)
+            view.add_item(ui.Button(label=f"{name} ({cost} Mana)", callback=cb))
+        await i.response.send_message("Choose skill:", view=view, ephemeral=True)
 
     async def update(self, channel):
         if self.hp <= 0 and self.alive:
-            self.alive = False; self.stop()
+            self.alive = False
             gold_each = self.reward // 5
             for b in self.children: b.disabled = True
             await self.message.edit(content=f"**{self.name} DEFEATED!**\nEveryone gets **{gold_each:,} gold**!", view=self)
@@ -135,21 +137,21 @@ class BossView(ui.View):
                     pp.d["quests"]["bosses"] += 1
                     pp.save()
         else:
-            bar = "█"*int(20 * self.hp/self.max) + "░"*(20 - int(20 * self.hp/self.max))
-            await self.message.edit(content=f"**{self.name}**  ❤️ {self.hp:,}/{self.max:,}\n`{bar}`", view=self)
+            bar = "█" * int(20 * self.hp / self.max_hp) + "░" * (20 - int(20 * self.hp / self.max_hp))
+            await self.message.edit(content=f"**{self.name}**  ❤️ {self.hp:,}/{self.max_hp:,}\n`{bar}`", view=self)
 
 async def boss_spawner():
     await client.wait_until_ready()
     while True:
-        await asyncio.sleep(random.randint(2700,5400))  # 45–90 min
+        await asyncio.sleep(random.randint(2700,5400))
         if not client.guilds: continue
         guild = random.choice(list(client.guilds))
         channel = random.choice([c for c in guild.text_channels if c.permissions_for(guild.me).send_messages])
-        bosses = ["Beru","Igris","Iron","Tank","Baran","Ant King","Metus"]
+        bosses = ["Beru","Igris","Iron","Tank","Baran","Ant King","Metus","Kaisel"]
         boss = random.choice(bosses)
         hp = random.randint(12000, 40000)
         reward = hp * 4
-        embed = discord.Embed(title=f"{boss} HAS APPEARED!",color=0xff0000)
+        embed = discord.Embed(title=f"{boss} HAS APPEARED!", color=0xff0000)
         view = BossView(boss, hp, reward)
         view.message = await channel.send(embed=embed, view=view)
 
@@ -167,8 +169,8 @@ async def register(i: discord.Interaction):
 async def profile(i: discord.Interaction, member: discord.Member = None):
     u = member or i.user
     p = Player(u)
-    e = discord.Embed(title=f"≪ {p.d['name']} ≫", color=rank_color[ranks.index(p.d['rank'])])
-    e.add_field(name="Class • Rank", value=f"{p.d['class']} • **{p.d['rank']}**", inline=False)
+    e = discord.Embed(title=f"{p.d['name']}", color=rank_color[ranks.index(p.d['rank'])])
+    e.add_field(name="Class • Rank", value=f"{p.d['class']} • **{p.d['rank']}**")
     e.add_field(name="Level", value=p.d['lv'], inline=True)
     e.add_field(name="HP", value=f"{p.d['hp']}/{p.d['max_hp']}", inline=True)
     e.add_field(name="Mana", value=f"{p.d['mana']}/{p.d['max_mana']}", inline=True)
@@ -182,70 +184,79 @@ async def profile(i: discord.Interaction, member: discord.Member = None):
 async def daily(i: discord.Interaction):
     p = Player(i.user)
     today = datetime.utcnow().strftime("%Y-%m-%d")
-    if p.d["daily"] == today: return await i.response.send_message("Already claimed today!", ephemeral=True)
+    if p.d["daily"] == today: return await i.response.send_message("Already claimed!", ephemeral=True)
     gold = random.randint(1800,3500)
     p.d["gold"] += gold; p.d["mana"] = p.d["max_mana"]; p.d["daily"] = today; p.save()
-    await i.response.send_message(embed=discord.Embed(title="Daily Quest Clear!",color=0x00ff00,description=f"+{gold:,} gold & full mana!"))
+    await i.response.send_message(embed=discord.Embed(title="Daily Quest Clear!", color=0x00ffaa00, description=f"+{gold:,} gold & full mana!"))
 
 @tree.command(name="pushup")
 async def pushup(i: discord.Interaction):
     p = Player(i.user)
-    if time.time() < p.d["training_cd"]["pushup"]: return await i.response.send_message("Cooldown!",ephemeral=True)
+    if time.time() < p.d["training_cd"]["pushup"]: return await i.response.send_message("On cooldown!", ephemeral=True)
     await i.response.send_message("Starting 100 push-ups…")
     await asyncio.sleep(30)
-    p.d["stats"]["str"] += 15; p.d["training_cd"]["pushup"] = time.time() + 14400; p.save()
+    p.d["stats"]["str"] += 15
+    p.d["training_cd"]["pushup"] = time.time() + 14400
+    p.save()
     await i.followup.send("**100 Push-ups complete!** +15 Strength")
 
 @tree.command(name="squat")
 async def squat(i: discord.Interaction):
     p = Player(i.user)
-    if time.time() < p.d["training_cd"]["squat"]: return await i.response.send_message("Cooldown!",ephemeral=True)
+    if time.time() < p.d["training_cd"]["squat"]: return await i.response.send_message("On cooldown!", ephemeral=True)
     await i.response.send_message("Starting 100 squats…")
     await asyncio.sleep(35)
-    p.d["stats"]["vit"] += 15; p.d["training_cd"]["squat"] = time.time() + 14400; p.save()
+    p.d["stats"]["vit"] += 15
+    p.d["training_cd"]["squat"] = time.time() + 14400
+    p.save()
     await i.followup.send("**100 Squats complete!** +15 Vitality")
 
 @tree.command(name="run")
 async def run(i: discord.Interaction):
     p = Player(i.user)
-    if time.time() < p.d["training_cd"]["run"]: return await i.response.send_message("Cooldown!",ephemeral=True)
+    if time.time() < p.d["training_cd"]["run"]: return await i.response.send_message("On cooldown!", ephemeral=True)
     await i.response.send_message("Running 10km…")
     await asyncio.sleep(40)
-    p.d["stats"]["agi"] += 15; p.d["training_cd"]["run"] = time.time() + 21600; p.save()
+    p.d["stats"]["agi"] += 15
+    p.d["training_cd"]["run"] = time.time() + 21600
+    p.save()
     await i.followup.send("**10km complete!** +15 Agility")
 
 @tree.command(name="jobchange")
 @app_commands.choices(job=[app_commands.Choice(name="Necromancer",value="Necromancer"),app_commands.Choice(name="Monarch",value="Monarch")])
 async def jobchange(i: discord.Interaction, job: str):
     p = Player(i.user)
-    if p.d["class"] != "Hunter": return await i.response.send_message("Already changed!",ephemeral=True)
-    if p.d["lv"] < 80: return await i.response.send_message("Need level 80+",ephemeral=True)
+    if p.d["class"] != "Hunter": return await i.response.send_message("Already changed!", ephemeral=True)
+    if p.d["lv"] < 80: return await i.response.send_message("Need level 80+", ephemeral=True)
     p.d["class"] = job
     if job=="Necromancer": p.d["max_mana"] += 300; p.d["mana"] += 300
-    if job=="Monarch": 
+    if job=="Monarch":
         for s in ["str","int"]: p.d["stats"][s] += 50
     p.save()
     await i.response.send_message(embed=discord.Embed(title="JOB CHANGE",description=f"You are now **{job}**!",color=0x000000 if job=="Monarch" else 0x8A2BE2))
 
 @tree.command(name="system", description="Open the System Guide")
 async def system_guide(i: discord.Interaction):
-    embed = discord.Embed(title="SYSTEM", description="Welcome to the System, Hunter.\nChoose a guide:", color=0x1e1f22)
+    embed = discord.Embed(title="SYSTEM", description="Welcome to the System, Hunter.\nChoose a category:", color=0x1e1f22)
     embed.set_image(url="https://i.imgur.com/7QzYwZf.png")
     await i.response.send_message(embed=embed, view=GuideView(), ephemeral=True)
 
 class GuideView(ui.View):
-    @ui.button(label="Beginner", style=discord.ButtonStyle.green)
+    @ui.button(label="Beginner Guide", style=discord.ButtonStyle.green)
     async def beginner(self,i,_): 
-        await i.response.send_message(embed=discord.Embed(title="Beginner Guide",color=0x00ff00,description="Chat = EXP\n/training-ground = 3× EXP\n/daily = free gold\nBosses spawn every ~1h\n/profile to see stats"),ephemeral=True)
+        await i.response.send_message(embed=discord.Embed(title="Beginner Guide",color=0x00ff00,
+            description="• Chat = EXP\n• #training-ground = 3× EXP\n• `/daily` = free gold\n• Bosses spawn ~every hour\n• `/profile` to check stats"),ephemeral=True)
     @ui.button(label="Training", style=discord.ButtonStyle.blurple)
     async def train(self,i,_): 
-        await i.response.send_message(embed=discord.Embed(title="Training",color=0x5865f2,description="/pushup • /squat • /run\nShop has stat potions\nOffline EXP every hour"),ephemeral=True)
+        await i.response.send_message(embed=discord.Embed(title="Training Commands",color=0x5865f2,
+            description="/pushup • /squat • /run\nAll have cooldowns\nStat shop coming soon!"),ephemeral=True)
     @ui.button(label="Classes & Skills", style=discord.ButtonStyle.red)
     async def classes(self,i,_): 
-        await i.response.send_message(embed=discord.Embed(title="Classes",color=0xff0000,description="Level 80 → /jobchange\nNecromancer = more mana + shadows\nMonarch = huge damage\nSkills in boss fights!"),ephemeral=True)
+        await i.response.send_message(embed=discord.Embed(title="Classes",color=0xff0000,
+            description="Level 80 → /jobchange\nNecromancer = shadows\nMonarch = damage\nUse Skill button in boss fights"),ephemeral=True)
     @ui.button(label="All Commands", style=discord.ButtonStyle.grey)
     async def cmds(self,i,_): 
         cmds = "\n".join([f"</{c.name}:{c.id}>" for c in tree.get_commands()])
-        await i.response.send_message(embed=discord.Embed(title="Commands",description=cmds,color=0x2f3136),ephemeral=True)
+        await i.response.send_message(embed=discord.Embed(title="Full Command List",description=cmds,color=0x2f3136),ephemeral=True)
 
 client.run(TOKEN)
