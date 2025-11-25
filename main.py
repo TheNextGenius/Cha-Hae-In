@@ -174,7 +174,7 @@ async def register(i: discord.Interaction):
     await i.response.send_message(
         embed=discord.Embed(title="SYSTEM", color=0x1e1f22,
             description=f"**{i.user.name}**, you have awakened as an **E-Rank Hunter**.\nType **/system** for the full guide!"
-        ).set_image(url="https://i.imgur.com/7QzYwZf.png")
+        ).set_image(url="https://wallpapercave.com/wp/wp15192227.webp")
     )
 
 @tree.command(name="profile")
