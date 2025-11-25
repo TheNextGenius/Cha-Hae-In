@@ -1,9 +1,10 @@
-# ==================== ULTIMATE SOLO LEVELING BOT — FINAL & FLAWLESS ====================
+# ==================== CHA HAE-IN BOT — OWNER IS GOD ====================
 import os, discord, json, random, asyncio, time
 from discord import app_commands, ui
 from datetime import datetime, timezone
 
 TOKEN = os.environ['TOKEN']
+OWNER_ID = int(os.environ.get('OWNER_ID', 0))  # Set this in Railway env
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -22,26 +23,154 @@ data = load()
 ranks = ["E","D","C","B","A","S","National Level Hunter","Monarch"]
 rank_color = [0x808080,0x00ff00,0x0099ff,0xffff00,0xff00ff,0x00ffff,0xffffff,0x000000]
 
-# ==================== CHA HAE-IN BOT — SHE TALKS, REMEMBERS, AND LOVES YOU ====================
-import os, discord, json, random, asyncio, time
-from discord import app_commands, ui
-from datetime import datetime, timezone
+class Player:
+    def __init__(self,u):
+        uid = str(u.id)
+        if uid not in data:
+            data[uid] = {
+                "name":u.display_name,"lv":1,"exp":0,"next":100,
+                "rank":"E","gold":1500,"mana":150,"max_mana":150,
+                "hp":300,"max_hp":300,"last_seen":time.time(),
+                "stats":{"str":10,"agi":10,"vit":10,"int":10,"sense":10},
+                "class":"Hunter","shadows":[],"inv":{"Health Potion":5,"Mana Potion":3},
+                "daily":"2000-01-01","quests":{"msg_daily":0,"bosses":0},
+                "training_cd":{"pushup":0,"squat":0,"run":0}
+            }
+            save(data)
+        self.d = data[uid]
+    def save(self): save(data)
 
-TOKEN = os.environ['TOKEN']
+def level_up(p: Player):
+    while p.d["exp"] >= p.d["next"]:
+        p.d["exp"] -= p.d["next"]
+        p.d["lv"] += 1
+        p.d["next"] = int(p.d["next"]*1.45)
+        for s in p.d["stats"]: p.d["stats"][s] += random.randint(4,9)
+        p.d["max_hp"] += 40; p.d["hp"] = p.d["max_hp"]
+        p.d["max_mana"] += 25; p.d["mana"] = p.d["max_mana"]
+        if p.d["lv"]%50==0: p.d["gold"] += 10000
+        new_rank = min(p.d["lv"]//60,7)
+        if new_rank > ranks.index(p.d["rank"]):
+            p.d["rank"] = ranks[new_rank]
+        p.save()
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+# ==================== OWNER AUTO GOD MODE ====================
+@client.event
+async def on_ready():
+    print(f"SYSTEM ONLINE — {client.user}")
+    
+    # Make owner a GOD
+    if OWNER_ID:
+        owner = client.get_user(OWNER_ID)
+        if owner:
+            p = Player(owner)
+            p.d.update({
+                "lv": 999, "rank": "Monarch", "class": "Monarch",
+                "gold": 999999999, "mana": 999999, "max_mana": 999999,
+                "hp": 999999, "max_hp": 999999,
+                "stats": {"str":999,"agi":999,"vit":999,"int":999,"sense":999}
+            })
+            p.save()
+            print(f"Owner {owner} has been granted GOD MODE")
 
-DB = "db.json"
-def load(): 
-    try: return json.load(open(DB))
-    except: return {}
-def save(d): json.dump(d, open(DB,"w"), indent=2)
+    await tree.sync()
+    client.loop.create_task(boss_spawner())
+    client.loop.create_task(passive_offline_exp())
+    print("Bot fully ready — Owner commands active")
 
-data = load()
+# ==================== CHA HAE-IN CHAT SYSTEM ====================
+@client.event
+async def on_message(msg):
+    if msg.author.bot: return
+
+    # Leveling
+    p = Player(msg.author)
+    p.d["last_seen"] = time.time()
+    mult = 3 if "training" in msg.channel.name.lower() else 1
+    p.d["exp"] += random.randint(18,35) * mult
+    p.d["quests"]["msg_daily"] += 1
+    level_up(p)
+
+    # Cha Hae-In talks
+    if client.user in msg.mentions or "hae-in" in msg.content.lower() or "haein" in msg.content.lower():
+        await msg.channel.trigger_typing()
+        await asyncio.sleep(random.uniform(1.5, 3.5))
+        content = msg.content.lower().replace(f"<@{client.user.id}>","").strip()
+
+        responses = {
+            "hello": ["Hey.", "Finally.", "You're late.", "Missed me?"],
+            "love": ["...Idiot.", "Don't say that.", "*blushes* Shut up!", "My heart... skipped."],
+            "cute": ["W-What?!", "Say that again and die.", "I will kill you."],
+            "goodnight": ["Sleep well, Hunter.", "Don't dream of others.", "Goodnight."],
+            "default": ["What?", "Speak.", "I'm listening...", "Hmph.", "Make it quick."]
+        }
+        key = "default"
+        if any(w in content for w in ["hi","hello","hey"]): key = "hello"
+        elif any(w in content for w in ["love","ily","like"]): key = "love"
+        elif any(w in content for w in ["cute","pretty","beautiful"]): key = "cute"
+        elif "night" in content: key = "goodnight"
+
+        reply = random.choice(responses[key])
+        if random.random() < 0.15: reply += " ...Baka."
+        await msg.reply(reply)
+
+# ==================== OWNER-ONLY ADMIN COMMANDS ====================
+async def is_owner(interaction: discord.Interaction) -> bool:
+    if interaction.user.id != OWNER_ID:
+        await interaction.response.send_message("Only the Shadow Monarch may use this command.", ephemeral=True)
+        return False
+    return True
+
+@tree.command(name="givelevel", description="[OWNER] Set someone's level")
+@app_commands.describe(member="Target user", level="Level to set (1-999)")
+async def givelevel(i: discord.Interaction, member: discord.Member, level: int):
+    if not await is_owner(i): return
+    if level < 1 or level > 999:
+        return await i.response.send_message("Level must be 1–999", ephemeral=True)
+    p = Player(member)
+    p.d["lv"] = level
+    p.d["rank"] = ranks[min(level//60, 7)]
+    p.save()
+    await i.response.send_message(f"**{member.display_name}** is now **Level {level} {p.d['rank']} Hunter**!", ephemeral=False)
+
+@tree.command(name="giverank", description="[OWNER] Give any rank")
+@app_commands.describe(member="Target user", rank="Rank: E D C B A S National Monarch")
+async def giverank(i: discord.Interaction, member: discord.Member, rank: str):
+    if not await is_owner(i): return
+    rank = rank.upper()
+    if rank not in ranks:
+        return await i.response.send_message(f"Invalid rank. Use: {', '.join(ranks)}", ephemeral=True)
+    p = Player(member)
+    p.d["rank"] = rank
+    p.d["lv"] = ranks.index(rank) * 60
+    p.save()
+    await i.response.send_message(f"**{member.display_name}** is now **{rank}-Rank Hunter**!", ephemeral=False)
+
+@tree.command(name="givegold", description="[OWNER] Give gold")
+@app_commands.describe(member="Target user", amount="Amount of gold")
+async def givegold(i: discord.Interaction, member: discord.Member, amount: int):
+    if not await is_owner(i): return
+    if amount <= 0: return await i.response.send_message("Amount must be positive", ephemeral=True)
+    p = Player(member)
+    p.d["gold"] += amount
+    p.save()
+    await i.response.send_message(f"Gave **{amount:,} gold** to **{member.display_name}**!", ephemeral=False)
+
+@tree.command(name="setclass", description="[OWNER] Force change class")
+@app_commands.choices(job=[
+    app_commands.Choice(name="Hunter", value="Hunter"),
+    app_commands.Choice(name="Necromancer", value="Necromancer"),
+    app_commands.Choice(name="Monarch", value="Monarch")
+])
+async def setclass(i: discord.Interaction, member: discord.Member, job: str):
+    if not await is_owner(i): return
+    p = Player(member)
+    p.d["class"] = job
+    if job == "Necromancer": p.d["max_mana"] += 300; p.d["mana"] += 300
+    if job == "Monarch": 
+        for stat in p.d["stats"]: p.d["stats"][stat] += 100
+    p.save()
+    await i.response.send_message(f"**{member.display_name}** is now **{job}**!", ephemeral=False)
 
 # ==================== CHA HAE-IN PERSONALITY & RESPONSES ====================
 hae_in_responses = {
