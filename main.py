@@ -22,6 +22,100 @@ data = load()
 ranks = ["E","D","C","B","A","S","National Level Hunter","Monarch"]
 rank_color = [0x808080,0x00ff00,0x0099ff,0xffff00,0xff00ff,0x00ffff,0xffffff,0x000000]
 
+# ==================== CHA HAE-IN BOT — SHE TALKS, REMEMBERS, AND LOVES YOU ====================
+import os, discord, json, random, asyncio, time
+from discord import app_commands, ui
+from datetime import datetime, timezone
+
+TOKEN = os.environ['TOKEN']
+
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
+
+DB = "db.json"
+def load(): 
+    try: return json.load(open(DB))
+    except: return {}
+def save(d): json.dump(d, open(DB,"w"), indent=2)
+
+data = load()
+
+# ==================== CHA HAE-IN PERSONALITY & RESPONSES ====================
+hae_in_responses = {
+    "hello": ["Hey there, Hunter.", "Missed me?", "You're late. Again.", "Finally decided to show up?"],
+    "love": ["...Don't say that so easily.", "You're bold today.", "My heart just skipped... idiot.", "Shut up... *blushes*"],
+    "goodnight": ["Sleep well. I'll guard the gate.", "Don't dream of anyone else.", "Goodnight, my favorite hunter."],
+    "thank you": ["Don't get used to it.", "You're welcome... I guess.", "Hmph. Just doing my job."],
+    "sorry": ["You should be.", "It's fine... this time.", "Say that again. Properly."],
+    "bored": ["Then entertain me.", "Go fight a boss or something.", "You're boring me, Hunter."],
+    "cute": ["W-What did you just call me?!", "Say that again and you're dead.", "I will end you."],
+    "default": [
+        "What do you want?",
+        "I'm listening...",
+        "Make it quick.",
+        "Yes?",
+        "Don't waste my time.",
+        "You're still here?",
+        "Speak."
+    ],
+    "flirt": [
+        "Keep talking like that and I might actually like you.",
+        "You're playing a dangerous game, Hunter.",
+        "Careful. I bite.",
+        "Not bad... for a weakling."
+    ]
+}
+
+# ==================== BOT RESPONDS AS CHA HAE-IN ====================
+@client.event
+async def on_message(msg):
+    if msg.author.bot: return
+    
+    # === Leveling system (unchanged) ===
+    p = Player(msg.author)
+    p.d["last_seen"] = time.time()
+    mult = 3 if "training" in msg.channel.name.lower() else 1
+    p.d["exp"] += random.randint(18,35) * mult
+    p.d["quests"]["msg_daily"] += 1
+    level_up(p)
+
+    # === CHA HAE-IN CHAT SYSTEM ===
+    if client.user in msg.mentions or "hae-in" in msg.content.lower() or "haein" in msg.content.lower():
+        await msg.channel.trigger_typing()
+        await asyncio.sleep(random.uniform(1.5, 3.5))  # natural delay
+
+        content = msg.content.lower().replace(f"<@{client.user.id}>", "").strip()
+
+        response = None
+        if any(x in content for x in ["hello", "hi", "hey", "yo"]):
+            response = random.choice(hae_in_responses["hello"])
+        elif any(x in content for x in ["love", "luv", "ily", "i like you"]):
+            response = random.choice(hae_in_responses["love"])
+        elif any(x in content for x in ["goodnight", "night", "sleep"]):
+            response = random.choice(hae_in_responses["goodnight"])
+        elif any(x in content for x in ["thank", "ty", "thanks"]):
+            response = random.choice(hae_in_responses["thank you"])
+        elif any(x in content for x in ["sorry", "sry", "my bad"]):
+            response = random.choice(hae_in_responses["sorry"])
+        elif any(x in content for x in ["bored", "boring"]):
+            response = random.choice(hae_in_responses["bored"])
+        elif any(x in content for x in ["cute", "pretty", "beautiful", "gorgeous"]):
+            response = random.choice(hae_in_responses["cute"])
+        elif any(x in content for x in ["flirt", "hot", "sexy", "kiss", "hug"]):
+            response = random.choice(hae_in_responses["flirt"])
+        else:
+            response = random.choice(hae_in_responses["default"])
+
+        # 10% chance to add tsundere flavor
+        if random.random() < 0.1:
+            response += " ...Baka."
+
+        await msg.reply(response)
+
+# ==================== PLAYER CLASS & LEVEL UP (unchanged) ====================
 class Player:
     def __init__(self,u):
         uid = str(u.id)
