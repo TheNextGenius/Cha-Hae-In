@@ -1,10 +1,10 @@
+import os
 import discord
 from discord import app_commands, ui
 import json
 import random
 import asyncio
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 TOKEN = os.environ['TOKEN']
 OWNER_ID = int(os.environ['OWNER_ID'])
@@ -17,32 +17,40 @@ tree = app_commands.CommandTree(client)
 
 DB_FILE = "solo_leveling_db.json"
 
-def load(): 
-    try: 
-        with open(DB_FILE) as f: return json.load(f)
-    except: return {}
-def save(d): 
-    with open(DB_FILE, "w") as f: json.dump(d, f, indent=2)
+def load():
+    try:
+        with open(DB_FILE) as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save(d):
+    with open(DB_FILE, "w") as f:
+        json.dump(d, f, indent=2)
 
 data = load()
-gates = {}  # active gates per server
+gates = {}
 
 ranks = ["E", "D", "C", "B", "A", "S", "National Level Hunter", "Monarch"]
 rank_colors = [0x808080,0x00ff00,0x0099ff,0xffff00,0xff00ff,0x00ffff,0xffffff,0x000000]
 
-# ——— PLAYER SYSTEM ———
 def player(u):
     uid = str(u.id)
     if uid not in data:
         data[uid] = {
             "name": u.display_name,
-            "level": 1, "exp": 0, "exp_next": 100,
-            "rank": "E", "gold": 1000, "mana": 100, "max_mana": 100,
+            "level": 1,
+            "exp": 0,
+            "exp_next": 100,
+            "rank": "E",
+            "gold": 1000,
+            "mana": 100,
+            "max_mana": 100,
             "stats": {"str":10,"agi":10,"vit":10,"int":10,"sense":10},
             "inventory": {"Health Potion": 5},
             "shadows": [],
             "necromancer": False,
-            "daily": "2000
+            "daily": "2000-01-01"   # ← this line was broken before, now fixed
         }
         save(data)
     return data[uid]
@@ -52,11 +60,11 @@ def level_up(p):
         p["exp"] -= p["exp_next"]
         p["level"] += 1
         p["exp_next"] = int(p["exp_next"] * 1.4)
-        for s in p["stats"]: p["stats"][s] += random.randint(3,7)
+        for s in p["stats"]:
+            p["stats"][s] += random.randint(3,7)
         p["max_mana"] += 15
         p["mana"] = p["max_mana"]
 
-# ——— EVENTS ———
 @client.event
 async def on_ready():
     print(f"≪ SYSTEM ONLINE ≫ {client.user}")
@@ -74,7 +82,7 @@ async def on_message(msg):
     if ranks[new_rank_idx] != old_rank:
         p["rank"] = ranks[new_rank_idx]
         await msg.channel.send(embed=discord.Embed(
-            title="✦ RE-AWAKENING ✦",
+            title="RE-AWAKENING",
             description=f"{msg.author.mention} is now **{p['rank']}-Rank Hunter**!",
             color=rank_colors[new_rank_idx]))
     save(data)
@@ -83,11 +91,11 @@ async def on_message(msg):
 @tree.command(name="register", description="Awaken as a Hunter")
 async def reg(i: discord.Interaction):
     p = player(i.user)
-    if p["level"] > 1: return await i.response.send_message("You are already awakened.", ephemeral=True)
+    if p["level"] > 1:
+        return await i.response.send_message("You are already awakened.", ephemeral=True)
     await i.response.send_message(embed=discord.Embed(
         title="SYSTEM", color=0x1e1f22,
         description=f"**{i.user.display_name}**, you have awakened as an **E-Rank Hunter**.\nOnly you can become stronger."))
-    await i.followup.send("https://i.imgur.com/7QzYwZf.png") # blue system window
 
 @tree.command(name="profile", description="Status window")
 async def prof(i: discord.Interaction, member: discord.Member = None):
@@ -99,7 +107,8 @@ async def prof(i: discord.Interaction, member: discord.Member = None):
     e.add_field(name="Mana", value=f"{p['mana']}/{p['max_mana']}", inline=True)
     e.add_field(name="Gold", value=f"{p['gold']:,}", inline=True)
     e.add_field(name="\u200b", value="\u200b")
-    for k,v in p["stats"].items(): e.add_field(name=k.capitalize(), value=v, inline=True)
+    for k,v in p["stats"].items():
+        e.add_field(name=k.capitalize(), value=v, inline=True)
     e.set_thumbnail(url=u.display_avatar.url)
     await i.response.send_message(embed=e)
 
@@ -107,30 +116,17 @@ async def prof(i: discord.Interaction, member: discord.Member = None):
 async def daily(i: discord.Interaction):
     p = player(i.user)
     today = datetime.utcnow().strftime("%Y-%m-%d")
-    if p["daily"] == today: return await i.response.send_message("Already claimed today!", ephemeral=True)
+    if p["daily"] == today:
+        return await i.response.send_message("Already claimed today!", ephemeral=True)
     gold = random.randint(1200,2200)
     p["gold"] += gold
+    p["mana"] = p["max_mana"]
     p["daily"] = today
+    save(data)
     await i.response.send_message(embed=discord.Embed(
         title="Daily Quest Complete!", color=0x00ff00,
-        description=f"You received **{gold:,} gold** and full mana restoration!"))
-    p["mana"] = p["max_mana"]
-    save(data)
+        description=f"You received **{gold:,} gold** and full mana!"))
 
-@tree.command(name="shop", description="Buy items with gold")
-async def shop(i: discord.Interaction):
-    view = ui.View(timeout=60)
-    async def buy_pot(inter):
-        p = player(inter.user)
-        if p["gold"] < 300: return await inter.response.send_message("Not enough gold!", ephemeral=True)
-        p["gold"] -= 300
-        p["inventory"]["Health Potion"] = p["inventory"].get("Health Potion",0) + 1
-        save(data)
-        await inter.response.edit_message(content=f"Bought 1 Health Potion! Gold left: {p['gold']:,}", view=None)
-    view.add_item(ui.Button(label="Health Potion — 300g", style=discord.ButtonStyle.green, custom_id="pot", callback=buy_pot))
-    await i.response.send_message("**System Shop**", view=view)
-
-# ——— GATE SYSTEM ———
 class GateView(ui.View):
     def __init__(self, rank, reward):
         super().__init__(timeout=300)
@@ -139,68 +135,60 @@ class GateView(ui.View):
         self.reward = reward
 
     @ui.button(label="Enter Gate", style=discord.ButtonStyle.red)
-    async def enter(self, inter: discord.Interaction, button: ui.Button):
-        if inter.user in self.players: return
+    async def enter(self, inter, button):
         p = player(inter.user)
+        if inter.user in self.players: return
         if ranks.index(p["rank"]) < ranks.index(self.rank)-1:
-            return await inter.response.send_message("Your rank is too low for this gate!", ephemeral=True)
+            return await inter.response.send_message("Rank too low!", ephemeral=True)
         self.players.append(inter.user)
-        await inter.response.send_message(f"{inter.user.mention} entered the **{self.rank}-Rank Gate**!", ephemeral=True)
-        await inter.message.edit(view=self)
+        await inter.response.send_message(f"{inter.user.mention} entered the gate!", ephemeral=True)
 
-    @ui.button(label="Start Raid (5+ players)", style=discord.ButtonStyle.blurple)
-    async def start(self, inter: discord.Interaction, button: ui.Button):
+    @ui.button(label="Start Raid (5+)", style=discord.ButtonStyle.blurple)
+    async def start(self, inter, button):
         if len(self.players) < 5:
-            return await inter.response.send_message("Need at least 5 hunters!", ephemeral=True)
+            return await inter.response.send_message("Need 5+ hunters!", ephemeral=True)
+        await inter.response.defer()
         await raid_start(inter.channel, self.players, self.rank, self.reward)
         await inter.message.delete()
 
 async def random_gate_spawner():
     await client.wait_until_ready()
     while True:
-        await asyncio.sleep(random.randint(1800, 5400))  # every 30–90 min
+        await asyncio.sleep(random.randint(1800,5400))
+        if not client.guilds: continue
         guild = random.choice(list(client.guilds))
         channel = random.choice([c for c in guild.text_channels if c.permissions_for(guild.me).send_messages])
-        rank = random.choices(["E","D","C","B","A","S"], weights=[30,25,20,15,8,2])[0]
-        reward = random.randint(3000, 15000 if rank=="S" else 8000)
-        embed = discord.Embed(title=f"{rank}-Rank Gate appeared!", color=0xff0000 if random.random()<0.05 else 0x00ff00)
-        embed.description = f"Reward pool: **{reward:,} gold**\nReact or click button to join!"
-        if random.random() < 0.05: embed.description += "\n**⚠️ This is a RED GATE!**"
-        await channel.send(embed=embed, view=GateView(rank, reward))
+        rank = random.choices(ranks[:6], weights=[30,25,20,15,8,2])[0]
+        reward = random.randint(5000, 20000 if rank=="S" else 10000)
+        red = "⚠️ RED GATE ⚠️\n" if random.random()<0.07 else ""
+        await channel.send(
+            embed=discord.Embed(title=f"{rank}-Rank Gate appeared!", color=0xff0000 if red else 0x00ff00,
+                               description=f"{red}Reward pool: **{reward:,} gold**"),
+            view=GateView(rank, reward))
 
 async def raid_start(channel, players, rank, pool):
-    boss_hp = len(players) * 500
-    msg = await channel.send(f"**{rank}-Rank Boss appeared!** HP: {boss_hp:,}")
-    for p in players:
-        player(p).mana = player(p)["max_mana"]
-    # simple 60-second raid
-    await asyncio.sleep(60)
-    winners = [p for p in players if random.random() < 0.85]  # 85% survival
-    gold_each = pool // len(winners) if winners else 0
-    for u in winners:
+    msg = await channel.send(f"**{rank}-Rank Boss spawned!** Fighting…")
+    await asyncio.sleep(55)
+    survivors = [p for p in players if random.random() < 0.88]
+    gold_each = pool // len(survivors) if survivors else 0
+    for u in survivors:
         p = player(u)
         p["gold"] += gold_each
-        p["exp"] += 500 if rank=="S" else 200
+        p["exp"] += 800 if rank=="S" else 300
         level_up(p)
-        if p["necromancer"] and random.random() < 0.4:
-            p["shadows"].append(f"{rank}-Rank Shadow Soldier")
-            await channel.send(f"{u.mention} extracted a shadow!")
-    await msg.edit(content=f"Raid cleared! {len(winners)} hunters survived and split **{pool:,} gold**!")
+        if p["necromancer"] and random.random()<0.45:
+            p["shadows"].append(f"{rank}-Rank Shadow")
+            await channel.send(f"{u.mention} extracted a shadow soldier!")
+    await msg.edit(content=f"Raid cleared! {len(survivors)} survived → {pool:,} gold split")
 
-# ——— MODERATOR EMERGENCY BUTTON ———
-@tree.command(name="emergency", description="☢️ Moderator panic button – wipes everything (only you)")
+@tree.command(name="emergency", description="Moderator nuke (only owner)")
 async def emergency(i: discord.Interaction):
     if i.user.id != OWNER_ID:
         return await i.response.send_message("no", ephemeral=True)
-    await i.response.send_message("☢️ DETONATING IN 5 SECONDS ☢️", delete_after=5)
+    await i.response.send_message("DETONATING IN 5…", delete_after=5)
     await asyncio.sleep(5)
-    for c in i.guild.channels:
-        try: await c.delete()
-        except: pass
-    for r in i.guild.roles[1:]:
-        try: await r.delete()
-        except: pass
-    await i.guild.edit(name="Nuked-by-System")
-    await i.channel.send("Server has been reset by the System Administrator.")
+    for c in i.guild.channels: await c.delete()
+    for r in list(i.guild.roles)[1:]: await r.delete()
+    await i.channel.send("Server reset by System Administrator.")
 
 client.run(TOKEN)
