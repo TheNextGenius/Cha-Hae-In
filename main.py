@@ -93,8 +93,8 @@ async def on_message(msg):
 
     # Cha Hae-In talks
     if client.user in msg.mentions or "hae-in" in msg.content.lower() or "haein" in msg.content.lower():
-        await msg.channel.trigger_typing()
-        await asyncio.sleep(random.uniform(1.5, 3.5))
+        async with msg.channel.typing():
+            await asyncio.sleep(random.uniform(1.5, 3.5))
         content = msg.content.lower().replace(f"<@{client.user.id}>","").strip()
 
         responses = {
