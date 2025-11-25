@@ -1,4 +1,4 @@
-# ==================== ULTIMATE SOLO LEVELING BOT 2025 — FINAL WORKING ====================
+# ==================== ULTIMATE SOLO LEVELING BOT 2025 — FINAL 100% WORKING ====================
 import os
 import discord
 import json
@@ -62,24 +62,21 @@ class Player:
         save(data)
 
 def level_up(p: Player):
-    while p_data = p.d
-    while p_data["exp"] >= p_data["next"]:
-        p_data["exp"] -= p_data["next"]
-        p_data["lv"] += 1
-        p_data["next"] = int(p_data["next"] * 1.45)
-        for s in p_data["stats"]:
-            p_data["stats"][s] += random.randint(4,9)
-        p_data["max_hp"] += 40
-        p_data["hp"] = p_data["max_hp"]
-        p_data["max_mana"] += 25
-        p_data["mana"] = p_data["max_mana"]
-
-        if p_data["lv"] % 50 == 0:
-            p_data["gold"] += 10000
-
-        new_rank_idx = min(p_data["lv"] // 60, 7)
-        if new_rank_idx > ranks.index(p_data["rank"]):
-            p_data["rank"] = ranks[new_rank_idx]
+    while p.d["exp"] >= p.d["next"]:
+        p.d["exp"] -= p.d["next"]
+        p.d["lv"] += 1
+        p.d["next"] = int(p.d["next"] * 1.45)
+        for s in p.d["stats"]:
+            p.d["stats"][s] += random.randint(4,9)
+        p.d["max_hp"] += 40
+        p.d["hp"] = p.d["max_hp"]
+        p.d["max_mana"] += 25
+        p.d["mana"] = p.d["max_mana"]
+        if p.d["lv"] % 50 == 0:
+            p.d["gold"] += 10000
+        new_rank_idx = min(p.d["lv"] // 60, 7)
+        if new_rank_idx > ranks.index(p.d["rank"]):
+            p.d["rank"] = ranks[new_rank_idx]
         p.save()
 
 # =========================== EVENTS ===========================
@@ -160,7 +157,7 @@ class BossView(ui.View):
             for btn in self.children:
                 btn.disabled = True
             await self.message.edit(content=f"**{self.name} DEFEATED!**\nEveryone gets **{gold_each:,} gold**!", view=self)
-            async for member in channel.guild.fetch_members(limit=None):
+            for member in channel.guild.members:
                 if not member.bot:
                     pp = Player(member)
                     pp.d["gold"] += gold_each
@@ -222,7 +219,7 @@ async def daily(i: discord.Interaction):
         return await i.response.send_message("Already claimed today!", ephemeral=True)
     gold = random.randint(1800,3500)
     p.d["gold"] += gold
-    p.d["mana] = p.d["max_mana"]
+    p.d["mana"] = p.d["max_mana"]
     p.d["daily"] = today
     p.save()
     await i.response.send_message(embed=discord.Embed(title="Daily Quest Clear!", color=0x00ff00, description=f"+{gold:,} gold & full mana!"))
