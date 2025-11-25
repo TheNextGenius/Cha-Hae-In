@@ -1,12 +1,7 @@
-# ==================== ULTIMATE SOLO LEVELING BOT 2025 — FINAL 100% WORKING ====================
-import os
-import discord
-import json
-import random
-import asyncio
-import time
+# ==================== ULTIMATE SOLO LEVELING BOT 2025 — FINAL PERFECT ====================
+import os, discord, json, random, asyncio, time
 from discord import app_commands, ui
-from datetime import datetime
+from datetime import datetime, timezone
 
 TOKEN = os.environ['TOKEN']
 OWNER_ID = int(os.environ['OWNER_ID'])
@@ -57,9 +52,7 @@ class Player:
             }
             save(data)
         self.d = data[uid]
-
-    def save(self):
-        save(data)
+    def save(self): save(data)
 
 def level_up(p: Player):
     while p.d["exp"] >= p.d["next"]:
@@ -68,10 +61,8 @@ def level_up(p: Player):
         p.d["next"] = int(p.d["next"] * 1.45)
         for s in p.d["stats"]:
             p.d["stats"][s] += random.randint(4,9)
-        p.d["max_hp"] += 40
-        p.d["hp"] = p.d["max_hp"]
-        p.d["max_mana"] += 25
-        p.d["mana"] = p.d["max_mana"]
+        p.d["max_hp"] += 40; p.d["hp"] = p.d["max_hp"]
+        p.d["max_mana"] += 25; p.d["mana"] = p.d["max_mana"]
         if p.d["lv"] % 50 == 0:
             p.d["gold"] += 10000
         new_rank_idx = min(p.d["lv"] // 60, 7)
@@ -114,18 +105,13 @@ async def passive_offline_exp():
 class BossView(ui.View):
     def __init__(self, name, hp, reward):
         super().__init__(timeout=240)
-        self.name = name
-        self.hp = hp
-        self.max_hp = hp
-        self.reward = reward
-        self.alive = True
+        self.name = name; self.hp = hp; self.max_hp = hp; self.reward = reward; self.alive = True
 
     @ui.button(label="Attack", style=discord.ButtonStyle.danger, emoji="Sword")
     async def attack(self, i: discord.Interaction, _):
         p = Player(i.user)
         dmg = p.d["stats"]["str"] + random.randint(40,100)
-        if p.d["class"] == "Monarch":
-            dmg = int(dmg * 1.7)
+        if p.d["class"] == "Monarch": dmg = int(dmg * 1.7)
         self.hp -= dmg
         await i.response.send_message(f"{i.user.mention} dealt **{dmg:,}** damage!", ephemeral=True)
         await self.update(i.channel)
@@ -137,11 +123,9 @@ class BossView(ui.View):
         skills = {"Fireball":(30,120), "Heal":(25,0), "Shadow Extract":(80,0), "Ruler’s Authority":(150,450)}
         for name, (cost, dmg) in skills.items():
             async def cb(inter, n=name, c=cost, d=dmg):
-                if p.d["mana"] < c:
-                    return await inter.response.send_message("Not enough mana!", ephemeral=True)
+                if p.d["mana"] < c: return await inter.response.send_message("Not enough mana!", ephemeral=True)
                 p.d["mana"] -= c
-                if d:
-                    self.hp -= d
+                if d: self.hp -= d
                 if n == "Shadow Extract" and p.d["class"] == "Necromancer" and random.random() < 0.6:
                     p.d["shadows"].append(f"{self.name} Shadow")
                     await inter.response.send_message("Shadow extracted!", ephemeral=False)
@@ -154,8 +138,7 @@ class BossView(ui.View):
         if self.hp <= 0 and self.alive:
             self.alive = False
             gold_each = self.reward // 5
-            for btn in self.children:
-                btn.disabled = True
+            for b in self.children: b.disabled = True
             await self.message.edit(content=f"**{self.name} DEFEATED!**\nEveryone gets **{gold_each:,} gold**!", view=self)
             for member in channel.guild.members:
                 if not member.bot:
@@ -189,8 +172,7 @@ async def register(i: discord.Interaction):
     if p.d["lv"] > 1:
         return await i.response.send_message("You are already awakened.", ephemeral=True)
     await i.response.send_message(
-        embed=discord.Embed(
-            title="SYSTEM", color=0x1e1f22,
+        embed=discord.Embed(title="SYSTEM", color=0x1e1f22,
             description=f"**{i.user.name}**, you have awakened as an **E-Rank Hunter**.\nType **/system** for the full guide!"
         ).set_image(url="https://i.imgur.com/7QzYwZf.png")
     )
@@ -206,15 +188,14 @@ async def profile(i: discord.Interaction, member: discord.Member = None):
     e.add_field(name="Mana", value=f"{p.d['mana']}/{p.d['max_mana']}", inline=True)
     e.add_field(name="Gold", value=f"{p.d['gold']:,}", inline=True)
     e.add_field(name="Shadows", value=len(p.d['shadows']), inline=True)
-    for k, v in p.d['stats'].items():
-        e.add_field(name=k.capitalize(), value=v, inline=True)
+    for k,v in p.d['stats'].items(): e.add_field(name=k.capitalize(), value=v, inline=True)
     e.set_thumbnail(url=u.display_avatar.url)
     await i.response.send_message(embed=e)
 
 @tree.command(name="daily")
 async def daily(i: discord.Interaction):
     p = Player(i.user)
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")  # Fixed deprecation
     if p.d["daily"] == today:
         return await i.response.send_message("Already claimed today!", ephemeral=True)
     gold = random.randint(1800,3500)
@@ -270,11 +251,9 @@ async def jobchange(i: discord.Interaction, job: str):
         return await i.response.send_message("Need level 80+", ephemeral=True)
     p.d["class"] = job
     if job == "Necromancer":
-        p.d["max_mana"] += 300
-        p.d["mana"] += 300
+        p.d["max_mana"] += 300; p.d["mana"] += 300
     if job == "Monarch":
-        p.d["stats"]["str"] += 50
-        p.d["stats"]["int"] += 50
+        p.d["stats"]["str"] += 50; p.d["stats"]["int"] += 50
     p.save()
     await i.response.send_message(embed=discord.Embed(title="JOB CHANGE", description=f"You are now **{job}**!", color=0x000000 if job=="Monarch" else 0x8A2BE2))
 
@@ -302,7 +281,12 @@ class GuideView(ui.View):
 
     @ui.button(label="All Commands", style=discord.ButtonStyle.grey)
     async def cmds(self, i, _):
-        cmds = "\n".join([f"</{c.name}:{c.id}>" for c in tree.get_commands()])
-        await i.response.send_message(embed=discord.Embed(title="Commands", description=cmds, color=0x2f3136), ephemeral=True)
+        # Fixed: command IDs are not available after sync anymore
+        commands_list = [c.name for c in tree.get_commands()]
+        await i.response.send_message(embed=discord.Embed(
+            title="All Commands",
+            description="\n".join([f"`/{cmd}`" for cmd in commands_list]),
+            color=0x2f3136
+        ), ephemeral=True)
 
 client.run(TOKEN)
