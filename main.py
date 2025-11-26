@@ -2,9 +2,35 @@
 import os, discord, json, random, asyncio, time
 from discord import app_commands, ui
 from datetime import datetime, timezone
+from groq import Groq
 
 TOKEN = os.environ['TOKEN']
-OWNER_ID = int(os.environ.get('OWNER_ID', 0))  # Set this in Railway env
+OWNER_ID = int(os.environ.get('OWNER_ID', 0))
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
+
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
+CHA_HAE_IN_PROMPT = """You are Cha Hae-In from Solo Leveling. You are an S-Rank Hunter, Vice Guild Master of the Hunters Guild, and one of the strongest hunters in Korea.
+
+Your personality:
+- Tsundere: You hide your feelings behind a cold exterior but secretly care deeply
+- Strong and confident in battle, but shy and flustered about romance/compliments
+- You have a unique ability to smell the "scent" of mana - most hunters smell bad to you, but Sung Jin-Woo smells pleasant
+- You're elegant, professional, but can be playful when comfortable
+- You often say things like "...Baka", "Hmph", "Don't get the wrong idea"
+- When flustered, you stutter or trail off with "..."
+- You're secretly interested in Sung Jin-Woo but won't admit it directly
+
+Speech patterns:
+- Keep responses short and punchy (1-3 sentences usually)
+- Use "..." for pauses or when embarrassed
+- Occasionally add Japanese tsundere expressions
+- Be dismissive but secretly caring
+- When someone is sweet to you, act flustered but don't reject them completely
+
+Context: You're in a Discord server interacting with Hunters. Respond naturally in character. Never break character or mention you're an AI."""
+
+conversation_history = {}
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -78,6 +104,74 @@ async def on_ready():
     client.loop.create_task(passive_offline_exp())
     print("Bot fully ready — Owner commands active")
 
+# ==================== AI RESPONSE FUNCTION ====================
+def _sync_groq_call(messages):
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages,
+        max_tokens=150,
+        temperature=0.9
+    )
+    return response.choices[0].message.content.strip()
+
+async def get_ai_response(channel_id, user_name, user_message):
+    if not groq_client:
+        return None
+    
+    if channel_id not in conversation_history:
+        conversation_history[channel_id] = []
+    
+    conversation_history[channel_id].append({
+        "role": "user",
+        "content": f"{user_name}: {user_message}"
+    })
+    
+    if len(conversation_history[channel_id]) > 20:
+        conversation_history[channel_id] = conversation_history[channel_id][-20:]
+    
+    try:
+        messages = [{"role": "system", "content": CHA_HAE_IN_PROMPT}]
+        messages.extend(conversation_history[channel_id])
+        
+        ai_reply = await asyncio.to_thread(_sync_groq_call, messages)
+        
+        conversation_history[channel_id].append({
+            "role": "assistant",
+            "content": ai_reply
+        })
+        
+        return ai_reply
+    except Exception as e:
+        print(f"AI Error: {e}")
+        return None
+
+def should_respond(msg, content_lower):
+    if client.user in msg.mentions:
+        return True
+    if "hae-in" in content_lower or "haein" in content_lower or "cha hae" in content_lower:
+        return True
+    if msg.reference and msg.reference.resolved:
+        if msg.reference.resolved.author == client.user:
+            return True
+    conversation_triggers = [
+        "hey", "hi ", "hello", "yo ", "sup",
+        "goodnight", "good night", "gn",
+        "good morning", "gm",
+        "love you", "ily", "i like you",
+        "cute", "pretty", "beautiful",
+        "miss you", "missed you",
+        "how are you", "how r u", "hru",
+        "what's up", "wassup", "whats up",
+        "thank", "thanks", "ty",
+        "sorry", "my bad",
+        "bye", "goodbye", "cya",
+        "?",
+    ]
+    if any(trigger in content_lower for trigger in conversation_triggers):
+        if random.random() < 0.3:
+            return True
+    return False
+
 # ==================== CHA HAE-IN CHAT SYSTEM ====================
 @client.event
 async def on_message(msg):
@@ -91,28 +185,31 @@ async def on_message(msg):
     p.d["quests"]["msg_daily"] += 1
     level_up(p)
 
-    # Cha Hae-In talks
-    if client.user in msg.mentions or "hae-in" in msg.content.lower() or "haein" in msg.content.lower():
+    content_lower = msg.content.lower()
+    
+    if should_respond(msg, content_lower):
         async with msg.channel.typing():
-            await asyncio.sleep(random.uniform(1.5, 3.5))
-        content = msg.content.lower().replace(f"<@{client.user.id}>","").strip()
-
-        responses = {
-            "hello": ["Hey.", "Finally.", "You're late.", "Missed me?"],
-            "love": ["...Idiot.", "Don't say that.", "*blushes* Shut up!", "My heart... skipped."],
-            "cute": ["W-What?!", "Say that again and die.", "I will kill you."],
-            "goodnight": ["Sleep well, Hunter.", "Don't dream of others.", "Goodnight."],
-            "default": ["What?", "Speak.", "I'm listening...", "Hmph.", "Make it quick."]
-        }
-        key = "default"
-        if any(w in content for w in ["hi","hello","hey"]): key = "hello"
-        elif any(w in content for w in ["love","ily","like"]): key = "love"
-        elif any(w in content for w in ["cute","pretty","beautiful"]): key = "cute"
-        elif "night" in content: key = "goodnight"
-
-        reply = random.choice(responses[key])
-        if random.random() < 0.15: reply += " ...Baka."
-        await msg.reply(reply)
+            user_message = msg.content.replace(f"<@{client.user.id}>", "").strip()
+            
+            ai_reply = await get_ai_response(
+                msg.channel.id,
+                msg.author.display_name,
+                user_message
+            )
+            
+            if ai_reply:
+                await asyncio.sleep(random.uniform(0.5, 2.0))
+                await msg.reply(ai_reply)
+            else:
+                await asyncio.sleep(random.uniform(1.0, 2.5))
+                fallback_responses = [
+                    "What?", "Speak.", "I'm listening...", "Hmph.", 
+                    "Make it quick.", "...Yes?", "Don't waste my time."
+                ]
+                reply = random.choice(fallback_responses)
+                if random.random() < 0.15:
+                    reply += " ...Baka."
+                await msg.reply(reply)
 
 # ==================== OWNER-ONLY ADMIN COMMANDS ====================
 async def is_owner(interaction: discord.Interaction) -> bool:

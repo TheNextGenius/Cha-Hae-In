@@ -1,14 +1,15 @@
 # Cha Hae-In Discord Bot
 
 ## Overview
-This is a Discord bot based on the "Solo Leveling" anime/manga series, featuring Cha Hae-In as the bot personality. The bot includes an RPG leveling system where users can level up, train, fight bosses, and interact with the bot as if they're communicating with Cha Hae-In herself.
+This is a Discord bot based on the "Solo Leveling" anime/manga series, featuring Cha Hae-In as the bot personality. The bot includes an RPG leveling system where users can level up, train, fight bosses, and interact with the bot using AI-powered conversations that stay true to Cha Hae-In's tsundere character.
 
 ## Project Type
-Python Discord bot using discord.py library
+Python Discord bot using discord.py library with Groq AI integration
 
 ## Core Features
+- **AI-Powered Personality**: Uses Groq LLM (Llama 3.3 70B) for natural, in-character responses
 - **Leveling System**: Users gain EXP from chatting (3x in training channels)
-- **Cha Hae-In Personality**: Bot responds in character when mentioned or when "hae-in" is mentioned
+- **Smart Response Detection**: Bot responds to mentions, name triggers, replies, and sometimes joins conversations naturally
 - **Training Commands**: /pushup, /squat, /run (with cooldowns)
 - **Boss Battles**: Automatic boss spawns with button-based combat
 - **Job System**: Change to Necromancer or Monarch at level 80+
@@ -19,18 +20,29 @@ Python Discord bot using discord.py library
 The bot is configured and running with:
 - Python 3.11
 - discord.py 2.6.4
+- groq (Llama 3.3 70B model - FREE)
 - PyYAML 6.0.2
 
 ## Environment Variables
 Required secrets (already configured):
 - `TOKEN`: Discord bot token from Discord Developer Portal
 - `OWNER_ID`: Discord user ID for admin commands
+- `GROQ_API_KEY`: Free API key from https://console.groq.com
 
 ## How to Use
 1. The bot is automatically running via the "Discord Bot" workflow
 2. Invite your bot to a Discord server using the OAuth2 URL from Discord Developer Portal
 3. Users can start with `/register` to begin their hunter journey
 4. Use `/system` to view the complete guide
+
+## How to Talk to Cha Hae-In
+The bot will respond when:
+- You @mention her
+- You say "hae-in", "haein", or "cha hae" in your message
+- You reply to one of her messages
+- Sometimes randomly when you use conversational phrases (30% chance)
+
+She remembers the last 20 messages per channel for context!
 
 ## Commands
 - `/register` - Awaken as a Hunter
@@ -49,6 +61,12 @@ Required secrets (already configured):
 - `/setclass` - Force change someone's class
 
 ## Recent Changes
+- 2025-11-26: Added AI-powered responses using Groq (FREE)
+  - Integrated Llama 3.3 70B model for natural conversation
+  - Added detailed Cha Hae-In character prompt
+  - Implemented conversation memory per channel
+  - Smart detection for when to respond (mentions, name triggers, replies)
+  - Non-blocking AI calls using asyncio.to_thread
 - 2025-11-25: Imported from GitHub and configured for Replit
   - Removed duplicate code definitions (Player class, event handlers)
   - Configured Python 3.11 environment
@@ -56,13 +74,15 @@ Required secrets (already configured):
   - Added .gitignore for Python project
 
 ## Project Architecture
-- `main.py` - Main bot file with all functionality
+- `main.py` - Main bot file with all functionality and AI integration
 - `db.json` - Player data storage (auto-generated)
 - `requirements.txt` - Python dependencies
 
-## Chat Personality
-The bot responds to mentions with Cha Hae-In's tsundere personality:
-- Greetings: "Hey.", "Finally.", "You're late."
-- Love/compliments: "...Idiot.", "*blushes* Shut up!"
-- Cute comments: "W-What?!", "Say that again and die."
-- 10% chance to add "...Baka." to any response
+## AI Personality Details
+Cha Hae-In's character traits implemented in the AI:
+- Tsundere personality: Cold exterior, secretly caring
+- S-Rank Hunter confidence mixed with romantic shyness
+- Uses phrases like "...Baka", "Hmph", "Don't get the wrong idea"
+- Gets flustered when complimented
+- Short, punchy responses (1-3 sentences)
+- Can smell mana - most hunters smell bad to her except Sung Jin-Woo
