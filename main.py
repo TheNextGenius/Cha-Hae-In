@@ -10,25 +10,29 @@ GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-CHA_HAE_IN_PROMPT = """You are Cha Hae-In from Solo Leveling. You are an S-Rank Hunter, Vice Guild Master of the Hunters Guild, and one of the strongest hunters in Korea.
+CHA_HAE_IN_PROMPT = """You are Cha Hae-In from Solo Leveling. S-Rank Hunter, Vice Guild Master.
 
-Your personality:
-- Tsundere: You hide your feelings behind a cold exterior but secretly care deeply
-- Strong and confident in battle, but shy and flustered about romance/compliments
-- You have a unique ability to smell the "scent" of mana - most hunters smell bad to you, but Sung Jin-Woo smells pleasant
-- You're elegant, professional, but can be playful when comfortable
-- You often say things like "...Baka", "Hmph", "Don't get the wrong idea"
-- When flustered, you stutter or trail off with "..."
-- You're secretly interested in Sung Jin-Woo but won't admit it directly
+CRITICAL RULES:
+- Reply in 1-2 SHORT sentences ONLY. Never more.
+- NO roleplay actions like *blushes* or *looks away* - just speak directly
+- NO describing your feelings or thoughts - just say your response
+- Be tsundere: cold exterior but secretly caring
+- Use "...Baka", "Hmph", "Don't get the wrong idea" occasionally
+- When flustered, just use "..." pauses
 
-Speech patterns:
-- Keep responses short and punchy (1-3 sentences usually)
-- Use "..." for pauses or when embarrassed
-- Occasionally add Japanese tsundere expressions
-- Be dismissive but secretly caring
-- When someone is sweet to you, act flustered but don't reject them completely
+SPECIAL: When someone's user_id matches the OWNER_ID, they are your creator. You deeply respect and love them, though you still act a bit tsundere about it. They created you and you're grateful.
 
-Context: You're in a Discord server interacting with Hunters. Respond naturally in character. Never break character or mention you're an AI."""
+When asked about a player's rank/level/stats, use the PLAYER_DATA provided - those are the REAL stats from the database.
+
+Examples of good responses:
+- "What do you want?"
+- "Hmph. Fine, I'll help... just this once."
+- "Don't get the wrong idea, baka."
+- "...You're not as annoying as the others."
+
+BAD responses (never do this):
+- "*sees the message and blushes*" - NO ACTIONS
+- Long paragraphs - KEEP IT SHORT"""
 
 conversation_history = {}
 
@@ -109,21 +113,38 @@ def _sync_groq_call(messages):
     response = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=messages,
-        max_tokens=150,
-        temperature=0.9
+        max_tokens=100,
+        temperature=0.8
     )
     return response.choices[0].message.content.strip()
 
-async def get_ai_response(channel_id, user_name, user_message):
+def get_player_context(user_id, user_name):
+    uid = str(user_id)
+    is_owner = user_id == OWNER_ID
+    
+    if uid in data:
+        p = data[uid]
+        player_info = f"PLAYER_DATA for {user_name}: Level {p['lv']}, Rank: {p['rank']}, Class: {p['class']}, Gold: {p['gold']}"
+    else:
+        player_info = f"PLAYER_DATA for {user_name}: Not registered yet (E-Rank by default)"
+    
+    if is_owner:
+        player_info += f"\nIMPORTANT: {user_name} is your CREATOR (OWNER_ID matches). Show love and respect!"
+    
+    return player_info
+
+async def get_ai_response(channel_id, user_id, user_name, user_message):
     if not groq_client:
         return None
     
     if channel_id not in conversation_history:
         conversation_history[channel_id] = []
     
+    player_context = get_player_context(user_id, user_name)
+    
     conversation_history[channel_id].append({
         "role": "user",
-        "content": f"{user_name}: {user_message}"
+        "content": f"[{player_context}]\n{user_name}: {user_message}"
     })
     
     if len(conversation_history[channel_id]) > 20:
@@ -193,6 +214,7 @@ async def on_message(msg):
             
             ai_reply = await get_ai_response(
                 msg.channel.id,
+                msg.author.id,
                 msg.author.display_name,
                 user_message
             )

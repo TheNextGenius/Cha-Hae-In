@@ -61,6 +61,11 @@ She remembers the last 20 messages per channel for context!
 - `/setclass` - Force change someone's class
 
 ## Recent Changes
+- 2025-11-26: Improved AI responses
+  - Shorter, more direct responses (1-2 sentences max)
+  - No more roleplay actions (*blushes*, *looks away*, etc)
+  - Bot can now read real player data (ranks, levels, class)
+  - Owner recognition - shows love/respect to the creator
 - 2025-11-26: Added AI-powered responses using Groq (FREE)
   - Integrated Llama 3.3 70B model for natural conversation
   - Added detailed Cha Hae-In character prompt
