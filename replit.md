@@ -1,93 +1,220 @@
-# Cha Hae-In Discord Bot
+# Cha Hae-In Discord Bot v2.0
 
 ## Overview
-This is a Discord bot based on the "Solo Leveling" anime/manga series, featuring Cha Hae-In as the bot personality. The bot includes an RPG leveling system where users can level up, train, fight bosses, and interact with the bot using AI-powered conversations that stay true to Cha Hae-In's tsundere character.
+**MAJOR UPGRADE COMPLETE!** This is a Solo Leveling themed Discord bot featuring Cha Hae-In AI character, now with SQLite database, inventory system, shop, analytics, and much more!
+
+**Version 2.0 Features:**
+- ✅ SQLite database (reliable, no corruption)
+- ✅ Comprehensive logging system
+- ✅ Command cooldowns
+- ✅ Inventory & Shop system
+- ✅ Server & user analytics
+- ✅ Owner broadcast command
+- ✅ Database backup/restore
+- ✅ Improved error handling
+- ✅ Auto-migration from old JSON
+
+---
 
 ## Project Type
-Python Discord bot using discord.py library with Groq AI integration
+Python Discord bot using discord.py with Groq AI integration
+
+**Tech Stack:**
+- discord.py 2.6.4
+- Groq AI (LLaMA 3.3 70B)
+- SQLite3 database
+- python-dotenv for config
+
+---
 
 ## Core Features
-- **AI-Powered Personality**: Uses Groq LLM (Llama 3.3 70B) for natural, in-character responses
-- **Leveling System**: Users gain EXP from chatting (3x in training channels)
-- **Smart Response Detection**: Bot responds to mentions, name triggers, replies, and sometimes joins conversations naturally
-- **Training Commands**: /pushup, /squat, /run (with cooldowns)
-- **Boss Battles**: Automatic boss spawns with button-based combat
-- **Job System**: Change to Necromancer or Monarch at level 80+
-- **Daily Rewards**: Gold and mana restoration
-- **Owner Admin Commands**: Give levels, ranks, gold, change classes
+
+### 🤖 AI-Powered Personality
+- Cha Hae-In (S-Rank Hunter from Solo Leveling)
+- Tsundere personality using Groq LLM
+- Context-aware with player stats
+- Owner gets special treatment (creator mode)
+
+### 📈 RPG Progression
+- Levels: 1 → 999
+- 8 ranks: E → D → C → B → A → S → National Level Hunter → Monarch
+- 5 stats: STR, AGI, VIT, INT, SENSE
+- EXP from chatting (3× in training channels)
+- Automatic stat increases on level up
+
+### ⚔️ Boss Battles
+- Automatic spawns every 45-90 minutes
+- Interactive button combat
+- 4 skills: Fireball, Heal, Shadow Extract, Ruler's Authority
+- Cooperative gold rewards
+- Shadow extraction for Necromancers!
+
+### 🏋️ Training
+- `/pushup` - +15 STR (4h cooldown)
+- `/squat` - +15 VIT (4h cooldown)
+- `/run` - +15 AGI (6h cooldown)
+
+### 💼 Job System
+- **Hunter** (default)
+- **Necromancer** (Lv80+): Shadow army, +300 mana
+- **Monarch** (Lv80+): +50 to all stats, 70% more boss damage
+
+### 🛍️ Economy & Inventory
+- Shop with consumables and gear
+- `/inventory` - View items
+- `/shop` - Browse available items
+- `/buy <item>` - Purchase
+- `/use <item>` - Use consumables
+- Health/Mana potions, elixirs, equipment
+
+### 📊 Analytics (Owner Only)
+- `/analytics` - Bot statistics
+- Command usage tracking
+- Server/user activity
+- Top players leaderboard
+
+### 🛠️ Admin Tools (Owner Only)
+- `/givelevel` - Set user level
+- `/giverank` - Set user rank
+- `/givegold` - Give gold
+- `/setclass` - Change class
+- `/broadcast` - Message all servers
+- `/backup` - Create database backup
+- `/health` - Bot status check
+
+---
 
 ## Setup
-The bot is configured and running with:
-- Python 3.11
-- discord.py 2.6.4
-- groq (Llama 3.3 70B model - FREE)
-- PyYAML 6.0.2
 
-## Environment Variables
-Required secrets (already configured):
-- `TOKEN`: Discord bot token from Discord Developer Portal
-- `OWNER_ID`: Discord user ID for admin commands
-- `GROQ_API_KEY`: Free API key from https://console.groq.com
+### Environment Variables
+Required (in Replit Secrets or Railway):
+```
+TOKEN=your_discord_bot_token
+OWNER_ID=your_discord_user_id
+GROQ_API_KEY=your_groq_api_key  # Optional but recommended
+```
 
-## How to Use
-1. The bot is automatically running via the "Discord Bot" workflow
-2. Invite your bot to a Discord server using the OAuth2 URL from Discord Developer Portal
-3. Users can start with `/register` to begin their hunter journey
-4. Use `/system` to view the complete guide
+### Installation
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
-## How to Talk to Cha Hae-In
-The bot will respond when:
-- You @mention her
-- You say "hae-in", "haein", or "cha hae" in your message
-- You reply to one of her messages
-- Sometimes randomly when you use conversational phrases (30% chance)
-
-She remembers the last 20 messages per channel for context!
+---
 
 ## Commands
-- `/register` - Awaken as a Hunter
-- `/profile [member]` - View player stats
-- `/daily` - Claim daily rewards
-- `/pushup` - Training: +15 Strength (4h cooldown)
-- `/squat` - Training: +15 Vitality (4h cooldown)
-- `/run` - Training: +15 Agility (6h cooldown)
-- `/jobchange` - Change class at level 80+
-- `/system` - Interactive guide
+
+### User Commands
+| Command | Description |
+|---------|-------------|
+| `/register` | Create hunter profile |
+| `/profile [member]` | View stats |
+| `/daily` | Claim daily rewards |
+| `/pushup` | Train STR (4h cd) |
+| `/squat` | Train VIT (4h cd) |
+| `/run` | Train AGI (6h cd) |
+| `/jobchange` | Switch class (Lv80+) |
+| `/inventory` | View items |
+| `/shop` | Browse shop |
+| `/buy <item>` | Purchase item |
+| `/use <item>` | Use item |
+| `/system` | Interactive guide |
+| `/health` | Bot status |
 
 ### Owner-Only Commands
-- `/givelevel` - Set someone's level (1-999)
-- `/giverank` - Give any rank (E/D/C/B/A/S/National/Monarch)
-- `/givegold` - Give gold to users
-- `/setclass` - Force change someone's class
+| Command | Description |
+|---------|-------------|
+| `/givelevel` | Set user level |
+| `/giverank` | Set user rank |
+| `/givegold` | Grant gold |
+| `/setclass` | Change class |
+| `/analytics` | View stats |
+| `/broadcast` | Send to all servers |
+| `/backup` | Database backup |
 
-## Recent Changes
-- 2025-11-26: Improved AI responses
-  - Shorter, more direct responses (1-2 sentences max)
-  - No more roleplay actions (*blushes*, *looks away*, etc)
-  - Bot can now read real player data (ranks, levels, class)
-  - Owner recognition - shows love/respect to the creator
-- 2025-11-26: Added AI-powered responses using Groq (FREE)
-  - Integrated Llama 3.3 70B model for natural conversation
-  - Added detailed Cha Hae-In character prompt
-  - Implemented conversation memory per channel
-  - Smart detection for when to respond (mentions, name triggers, replies)
-  - Non-blocking AI calls using asyncio.to_thread
-- 2025-11-25: Imported from GitHub and configured for Replit
-  - Removed duplicate code definitions (Player class, event handlers)
-  - Configured Python 3.11 environment
-  - Set up Discord Bot workflow
-  - Added .gitignore for Python project
+---
 
-## Project Architecture
-- `main.py` - Main bot file with all functionality and AI integration
-- `db.json` - Player data storage (auto-generated)
-- `requirements.txt` - Python dependencies
+## Database (SQLite)
 
-## AI Personality Details
-Cha Hae-In's character traits implemented in the AI:
-- Tsundere personality: Cold exterior, secretly caring
-- S-Rank Hunter confidence mixed with romantic shyness
-- Uses phrases like "...Baka", "Hmph", "Don't get the wrong idea"
-- Gets flustered when complimented
-- Short, punchy responses (1-3 sentences)
-- Can smell mana - most hunters smell bad to her except Sung Jin-Woo
+### Tables:
+- **players** - User profiles, stats, inventory
+- **servers** - Guild tracking
+- **command_usage** - Analytics
+- **shop_items** - Shop inventory
+- **equipment** - Equipment management
+
+Auto-migrates from old `db.json` on first run!
+
+---
+
+## How to Talk to Cha Hae-In
+
+The bot responds when:
+- You @mention her
+- You say "hae-in", "haein", or "cha hae"
+- You reply to her messages
+- Sometimes to greetings (hey, hi, hello, etc.) - 40% chance
+
+Last 20 messages per channel remembered for context!
+
+---
+
+## Deploy 24/7 for FREE
+
+### Railway (Recommended)
+1. Fork this repo
+2. Go to [railway.app](https://railway.app)
+3. New Project → Deploy from GitHub
+4. Add environment variables
+5. Done! Free $5/month credit = always-on
+
+### Replit
+- Use the built-in workflow
+- Add UptimeRobot to ping every 5 minutes
+- Warning: Still sleeps on free tier
+
+---
+
+## Recent Changes (v2.0)
+
+- **Database Upgrade**: Switched from JSON to SQLite
+- **Logging System**: File + console with rotation
+- **Command Cooldowns**: Prevents spam
+- **Inventory System**: Full item management
+- **Shop**: Buy/sell items with gold
+- **Analytics**: Track bot usage
+- **Broadcast**: Owner can message all servers
+- **Backup**: Easy database backups
+- **Error Handling**: Better resilience
+- **Code Refactor**: Cleaner, modular structure
+
+---
+
+## File Structure
+```
+Cha-Hae-In/
+├── main.py           # Main bot (v2.0 - 500+ lines)
+├── database.py       # SQLite database layer
+├── config.py         # Configuration
+├── logger.py         # Logging setup
+├── requirements.txt  # Dependencies
+├── railway.json      # Railway config
+├── .env.example      # Env template
+├── data.db           # Database (auto-created)
+├── logs/             # Log files
+└── README.md         # Full docs
+```
+
+---
+
+## Support
+
+Issues? Check:
+1. Bot token is correct
+2. Bot has proper permissions
+3. GROQ_API_KEY set (optional)
+4. Database file is writable
+
+---
+
+**v2.0 - Upgraded & Improved! 🚀**
